@@ -15,7 +15,7 @@ $RootSiteURLPath = str_replace('\\', '/', $SiteURLLocal);
 define('SiteRootDir', $RootSiteURLPath); 
 
 $db_conn = array(
-	'host' => 'mysql', 
+	'host' => 'mysql-meetmedb', 
 	'user' => 'cmnwgovl_nimal',
 	'pass' => 'raviravi',
 	'database' => 'cmnwgovl_cliet_meet', 
@@ -24,6 +24,7 @@ $db_conn = array(
 $db = new SimpleDBClass($db_conn);
 
 ?>
+
 
 
 
