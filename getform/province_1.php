@@ -1,0 +1,55 @@
+<?php
+ob_start();
+session_start();
+include_once('../login_system/_inc/config.php');
+$qprovi = null;
+$user_email = null;
+$uleveldis = null;
+$province = null;
+$ministry = null;
+$district_offce = null;
+$divi_offce = null;
+$divi_offce2 = null;
+
+if (isset($_SESSION["me_accss_level"])) {
+    $user_email = $_SESSION['me_user_email'];
+    $uleveldis = $_SESSION["me_accss_level"];
+    $province = $_SESSION["me_province"];
+    $ministry = $_SESSION["me_ministry"];
+    $district_offce = $_SESSION["me_district_offce"];
+    $divi_offce = $_SESSION["me_offce"];
+    $divi_offce2 = $_SESSION["me_offce2"];
+} else {
+    
+}
+?>
+<div class="input-group input-search">
+    <select type="text" class="form-control shopro_province_id " id="shopro_province_id" name="shopro_province_id"placeholder="Province" onclick="clk_proid()"><span class="input-group-btn">
+ <option value=''>-Non-</option>         
+   <?php
+            if (isset($_SESSION["me_accss_level"])) {
+                $sql = null;
+                if ($uleveldis == '1269_mt') {
+                    $sql = "SELECT `p_code`, `p_name` FROM `province`  ORDER BY `p_name`";
+                } else if ($uleveldis == '1548_sa') {
+                    $sql = "SELECT `p_code`, `p_name` FROM `province`WHERE `p_code` =  '$province'ORDER BY `p_name`  ";
+                } else if ($uleveldis == '1658_pa') {
+                    $sql = "SELECT `p_code`, `p_name` FROM `province`WHERE `p_code` =  '$province' ORDER BY `p_name`  ";
+                } else if ($uleveldis == '2753_ps') {
+                    $sql = "SELECT `p_code`, `p_name` FROM `province`WHERE `p_code` =  '$province' ORDER BY `p_name`  ";
+                }
+                if ($db->getresultset($sql)) {
+                    $result = $db->getresultset($sql);
+                    while ($erow2 = $result->fetch_assoc()) {
+                        ?>
+                        <option value=<?php echo $erow2["p_code"]; ?> ><?php echo $erow2["p_code"]; ?> -<?php echo $erow2["p_name"]; ?></option>
+                        <?php
+                    }
+                }
+            }
+            ?>
+    </select>
+   
+</div>  
+<input hidden id="inpuproid" name="inpuproid"></input>
+
