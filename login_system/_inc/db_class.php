@@ -1,7 +1,7 @@
 <?php
 date_default_timezone_set('Asia/Calcutta');
 /*
-  Project  SimpleDBClass
+  Project   SimpleDBClass
   Author    Mark Kumar
   Site      http://codewithmark.com/
   Link      https://github.com/codewithmark/php-simple-database-functions
@@ -19,55 +19,26 @@ class SimpleDBClass {
     public $ShowQryErrors = 'on'; //on or off
 
     //--->Connect to database - Start
+    public function __construct($db_conn = array()) {
+        // OpenShift Environment Variables කියවා ගැනීම (එවා නැතිනම් default අගයන් භාවිතා වේ)
+        $host     = getenv('DATABASE_SERVICE_NAME') ?: 'mysql'; 
+        $user     = getenv('DATABASE_USER') ?: 'cmnwgovl_nimal'; 
+        $pass     = getenv('DATABASE_PASSWORD') ?: 'raviravi'; 
+        $database = getenv('DATABASE_NAME') ?: 'cmnwgovl_cliet_meet';
+        $port     = 3306;
 
-
-// db_class.php හි 20 වන පේළිය අවට වෙනස් කරන්න
-public function __construct($db_conn = array()) {
-    // OpenShift මගින් ලබාදෙන variables කියවා ගැනීම
-    $host     = getenv('DATABASE_SERVICE_NAME') ?: 'mysql'; 
-    $user     = getenv('DATABASE_USER') ?: 'cmnwgovl_nimal'; 
-    $pass     = getenv('DATABASE_PASSWORD') ?: 'raviravi'; 
-    $database = getenv('DATABASE_NAME') ?: 'cmnwgovl_cliet_meet';
-
-    // Create connection
-    $connection = mysqli_connect($host, $user, $pass, $database);
-    
-    if (!$connection) {
-        die("Connection failed: " . mysqli_connect_error());
-    }
-    
-    $this->isConn = $connection;
-    mysqli_set_charset($connection, "utf8");
-}
-
-
-
+        // Create connection
+        $connection = mysqli_connect($host, $user, $pass, $database, $port);
+        
         // Check connection
         if (!$connection) {
-            //echo ("conasfasdfas");
             die("Connection failed: " . mysqli_connect_error());
-            return false;
-        }
-        if ($connection) {
-            //echo ("conneted");
+        } else {
             $this->isConn = $connection;
+            mysqli_set_charset($connection, "utf8");
         }
     }
-
     //--->Connect to database - End
-
-
-
-
-    /*
-      Different 5 types of queries
-      - Select: all rows
-      - Insert: add row(s)
-      - Update: update field(s)
-      - Delete: delete row(s)
-      - Qry: general purpose query
-     */
-
 
     public function getresultset($query) {
         $con = $this->isConn;
@@ -82,281 +53,156 @@ public function __construct($db_conn = array()) {
         }
     }
 
+    //--->Select - Start
+    function Select($SQLStatement) {
+        $con = $this->isConn;
+        if (!$con) {
+            die("Connection failed in Select function - " . mysqli_connect_error());
+        }
+        if ($con) {
+            $q = $con->query($SQLStatement);
+            if (!$q) {
+                if ($this->ShowQryErrors == 'on') {
+                    die(mysqli_error($con));
+                }
+            }
+            $row = $q->num_rows;
+            if ($row < 1) {
+                $result = $row;
+            } else if ($row == 1) {
+                $result = array($q->fetch_assoc());
+            } else if ($row > 1) {
+                $d1 = array($q->fetch_assoc());
+                $d2 = array();
+                while ($row = $q->fetch_assoc()) {
+                    $d2[] = $row;
+                }
+                $result = array_merge($d1, $d2);
+            }
+            return $result;
+        }
+    }
+    //--->Select - End
 
-//--->Select - Start
-function Select($SQLStatement) {
-/*
-* This will get all of the rows from the table.  
-Call it like -
-$db = new SimpleDBClass("host_name", "user_id", "password","database")
-$Qry = $db->Select( "SELECT * FROM Users WHERE site='codewithmark'")
-*/
-// Create connection
-$con = $this->isConn;
-// Check connection
-if (!$con) {
-die("Connection failed in Select function - " . mysqli_connect_error());
-}
-// Connection is made
-if ($con) {
-//$SQLStatement = "SELECT * FROM UserProfile WHERE user_id='markkumar'"; 
-$q = $con->query($SQLStatement);
-//Fail to run query.
-if (!$q) {
-//show error message
-if ($this->ShowQryErrors == 'on') {
-die(mysqli_error($con));
-}
-}
-$row = $q->num_rows;
-//no rows found
-if ($row < 1) {
-$result = $row;
-}
-//only one row of data
-else if ($row == 1) {
-$result = array($q->fetch_assoc());
-}
-//multiple rows
-else if ($row > 1) {
-$d1 = array($q->fetch_assoc());
-$d2 = array();
-while ($row = $q->fetch_assoc()) {
-$d2[] = $row;
-}
-//merger array to get all rows
-$result = array_merge($d1, $d2);
-}
-//Will return a row data
-return $result;
-}
-}
+    //--->Insert - Start  
+    function Insert($TableName, $row_arrays = array()) {
+        foreach (array_keys($row_arrays) as $key) {
+            $columns[] = "$key";
+            $values[] = "'" . $row_arrays[$key] . "'";
+        }
+        $columns = implode(",", $columns);
+        $values = implode(",", $values);
+        $sql = "INSERT INTO $TableName ($columns) VALUES ($values)";
+        $con = $this->isConn;
+        if (!$con) {
+            die("Connection failed in query function - " . mysqli_connect_error());
+        }
+        if ($con) {
+            $q = $con->query($sql);
+            if (!$q) {
+                if ($this->ShowQryErrors == 'on') {
+                    die(mysqli_error($con));
+                }
+                $result = 0;
+            } else {
+                $result = $con->insert_id;
+            }
+            return $result;
+        }
+    }
+    //--->Insert - End
 
+    //--->Update - Start
+    function Update($strTableName, $array_fields, $array_where) {
+        foreach ($array_fields as $key => $value) {
+            if ($key) {
+                $field_update[] = " $key='$value'";
+            }
+        }
+        $fields_update = implode(',', $field_update);
+        foreach ($array_where as $key => $value) {
+            if ($key) {
+                $field_where[] = " $key='$value'";
+            }
+        }
+        $fields_where = implode(' and ', $field_where);
+        $SQLStatement = "UPDATE $strTableName SET $fields_update WHERE $fields_where ";
+        $con = $this->isConn;
 
-//--->Select - End
-//--->Insert - Start  
-function Insert($TableName, $row_arrays = array()) {
-/*
-$insert_arrays = array
-(
-'user_id' => "codemaster",
-'email_id' => 'mk@codewithmark.com',
-'user_name'=> 'codewithmark'
-);
-Call it like this:
-$db = new SimpleDBClass("host_name", "user_id", "password","database")
-$Qry = $db->Insert('table',$insert_arrays);
-If ran successfully, it will return the insert id else 0
-*/
+        if (!$con) {
+            die("Connection failed in query function - " . mysqli_connect_error());
+        }
+        if ($con) {
+            $q = $con->query($SQLStatement);
+            if (!$q) {
+                if ($this->ShowQryErrors == 'on') {
+                    die(mysqli_error($con));
+                }
+                $result = 0;
+            } else {
+                $result = 1;
+            }
+            return $result;
+        }
+    }
+    //--->Update - End
 
-foreach (array_keys($row_arrays) as $key) {
-$columns[] = "$key";
-$values[] = "'" . $row_arrays[$key] . "'";
-}
-//Get columns and values
-$columns = implode(",", $columns);
-$values = implode(",", $values);
-$sql = "INSERT INTO $TableName ($columns) VALUES ($values)";
-$con = $this->isConn;
-// Check connection
-if (!$con) {
-die("Connection failed in query function - " . mysqli_connect_error());
-}
-if ($con) {
-$q = $con->query($sql);
-if (!$q) {
-//show error message
-if ($this->ShowQryErrors == 'on') {
-die(mysqli_error($con));
-}
-$result = 0;
-}
-if ($q) {
-//Will give the last inserted id
-$result = $con->insert_id;
-}
-//Will return a row data
-return $result;
-}
-}
+    //--->Delete - Start
+    function Delete($strTableName, $array_where) {
+        foreach ($array_where as $key => $value) {
+            if ($key) {
+                $field_where[] = " $key='$value' ";
+            }
+        }
+        $fields_where = implode(' and ', $field_where);
+        $con = $this->isConn;
+        if (!$con) {
+            die("Connection failed in query function - " . mysqli_connect_error());
+        }
+        $QDeleteRec = "DELETE FROM $strTableName WHERE $fields_where";
 
-//--->Insert - End
-//--->Update - Start
-function Update($strTableName, $array_fields, $array_where) {
-/*
-This will update the row values
-If it ran successfully, it will return 1 else 0
-$strTableName = "TableName";
-//It would be in your best interested to run your values through CleanDBData($Data) function
-//to prevent any sql injections which potentially cause problems in your database.
-$array_fields = array(
-'FieldName1' => CleanDBData(FieldValue1),
-'FieldName2' => CleanDBData(FieldValue2),
-'FieldName3' => CleanDBData(FieldValue3),
-);
-$array_where = array(
-'rec_id' => 2,
-'rec_dt' => date("Y-m-d"),
-);
-Call it like this:
-$db = new SimpleDBClass("host_name", "user_id", "password","database")
-$Qry = $db->Update('table', $array_fields, $array_where)
-*/
+        if ($con) {
+            $q = $con->query($QDeleteRec);
+            if ($q) {
+                $result = 1;
+            } else {
+                $result = 0;
+            }
+            return $result;
+        }
+    }
+    //--->Delete - End
 
-//Get the update fields and value
-foreach ($array_fields as $key => $value) {
-if ($key) {
-$field_update[] = " $key='$value'";
-}
-}
-$fields_update = implode(',', $field_update);
-//Get where fields and value
-foreach ($array_where as $key => $value) {
-if ($key) {
-$field_where[] = " $key='$value'";
-}
-}
-$fields_where = implode(' and ', $field_where);
-$SQLStatement = "UPDATE $strTableName  SET $fields_update WHERE $fields_where ";
-$con = $this->isConn;
+    function Qry($SQLStatement) {
+        $con = $this->isConn;
+        if (!$con) {
+            die("Connection failed in query function - " . mysqli_connect_error());
+        }
+        if ($con) {
+            $q = $con->query($SQLStatement);
+            if (!$q) {
+                if ($this->ShowQryErrors == 'on') {
+                    die(mysqli_error($con));
+                }
+                $result = 0;
+            } else {
+                $result = 1;
+            }
+            return $result;
+        }
+    }
 
-// Check connection
-if (!$con) {
-die("Connection failed in query function - " . mysqli_connect_error());
-}
-if ($con) {
-$q = $con->query($SQLStatement);
-if (!$q) {
-//show error message
-if ($this->ShowQryErrors == 'on') {
-die(mysqli_error($con));
-}
-$result = 0;
-}
-if ($q) {
-$result = 1;
-}
-//Will return a row data
-return $result;
-}
-}
+    function CleanDBData($Data) {
+        $con = $this->isConn;
+        $str = mysqli_real_escape_string($con, $Data);
+        return $str;
+    }
 
-//--->Update - End
-//--->Delete - Start
-function Delete($strTableName, $array_where) {
-/*
-This will delete all rows where field name equals delete value.
-If it ran successfully, it will return 1 else 0
-Call it like this:
-$array_where = array(
-'rec_id' => 2,
-'rec_dt' => date("Y-m-d"),
-);
-$db = new SimpleDBClass("host_name", "user_id", "password","database")
-$Qry = $db->Delete('table',$array_where);
-*/
-
-//Get where fields and value
-foreach ($array_where as $key => $value) {
-if ($key) {
-$field_where[] = " $key='$value' ";
+    function CleanHTMLData($Data) {
+        $con = $this->isConn;
+        $str = mysqli_real_escape_string($con, $Data);
+        $result = preg_replace('/(?:<|&lt;)\/?([a-zA-Z]+) *[^<\/]*?(?:>|&gt;)/', '', $str);
+        return $result;
+    }
 }
-}
-$fields_where = implode(' and ', $field_where);
-// Create connection
-$con = $this->isConn;
-// Check connection
-if (!$con) {
-die("Connection failed in query function - " . mysqli_connect_error());
-}
-//check to see if the record exist
-//$QFindRec = "SELECT * FROM $strTableName WHERE $strFieldName='$strFieldDeleteValueEqualTo'";
-//$QFindRec = "SELECT * FROM $strTableName WHERE $fields_where ";
-$QDeleteRec = "DELETE FROM $strTableName WHERE $fields_where";
-//echo $QDeleteRec;
-
-if ($con) {
-$q = $con->query($QDeleteRec);
-if ($q) {
-//found the record(s) and now delete it
-//$QDeleteRec = "DELETE FROM $strTableName WHERE $strFieldName='$strFieldDeleteValueEqualTo'";
-//$QDeleteRec = "DELETE FROM $strTableName WHERE $fields_where";
-//$con->query($QDeleteRec);
-$result = 1;
-}
-if (!$q) {
-$result = 0;
-}
-//Will return a row data
-return $result;
-}
-}
-
-//--->Delete - End
-
-
-
-
-function Qry($SQLStatement) {
-/*
-This is for general purpose query.
-If it ran successfully, it will return 1 else 0.
-Call it like this:
-$db = new SimpleDBClass("host_name", "user_id", "password","database")
-$Qry = $db->Qry('select * from user where id=100');
-*/
-// Create connection
-$con = $this->isConn;
-// Check connection
-if (!$con) {
-die("Connection failed in query function - " . mysqli_connect_error());
-}
-if ($con) {
-$q = $con->query($SQLStatement);
-
-if (!$q) {
-//show error message
-if ($this->ShowQryErrors == 'on') {
-die(mysqli_error($con));
-}
-$result = 0;
-}
-if ($q) {
-//$result = true;
-$result = 1;
-}
-//Will return a row data
-return $result;
-}
-}
-
-function CleanDBData($Data) {
-/*
-This will help in preventing sql injections
-Call it like this:
-$db = new SimpleDBClass("host_name", "user_id", "password","database")
-$Qry = $db->CleanDBData($_POST["user_name"]);
-*/
-// Create connection
-$con = $this->isConn;
-$str = mysqli_real_escape_string($con, $Data);
-return $str;
-}
-
-
-
-function CleanHTMLData($Data) {
-/*
-This will remove all HTML tags
-$db = new SimpleDBClass("host_name", "user_id", "password","database")
-$Qry = $db->CleanHTMLData($_POST["user_entry"]);
-*/
-// Create connection
-$con = $this->isConn;
-$str = mysqli_real_escape_string($con, $Data);
-$result = preg_replace('/(?:<|&lt;)\/?([a-zA-Z]+) *[^<\/]*?(?:>|&gt;)/', '', $str);
-return $result;
-}
-}
-
 ?>
