@@ -15,15 +15,16 @@ $RootSiteURLPath = str_replace('\\', '/', $SiteURLLocal);
 define('SiteRootDir', $RootSiteURLPath); 
 
 $db_conn = array(
-	'host' => 'localhost', 
+	'host' => 'mysql', 
 	'user' => 'cmnwgovl_nimal',
-	'pass' => '',
+	'pass' => 'raviravi',
 	'database' => 'cmnwgovl_cliet_meet', 
 	); 
 
 $db = new SimpleDBClass($db_conn);
 
 ?>
+
 
 
 
