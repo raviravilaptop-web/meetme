@@ -21,7 +21,7 @@ class SimpleDBClass {
     //--->Connect to database - Start
     public function __construct($db_conn = array()) {
         // OpenShift Environment Variables කියවා ගැනීම (එවා නැතිනම් default අගයන් භාවිතා වේ)
-        $host     = getenv('DATABASE_SERVICE_NAME') ?: 'mysql'; 
+        $host     = getenv('DATABASE_SERVICE_NAME') ?: 'mysql-meetmedb'; 
         $user     = getenv('DATABASE_USER') ?: 'cmnwgovl_nimal'; 
         $pass     = getenv('DATABASE_PASSWORD') ?: 'raviravi'; 
         $database = getenv('DATABASE_NAME') ?: 'cmnwgovl_cliet_meet';
