@@ -20,10 +20,10 @@ class SimpleDBClass {
 
     //--->Connect to database - Start
 
-    public function __construct($db_conn = array('host' => 'localhost', 'user' => 'root', 'pass' => '', 'database' => 'test',)) {
-        $host = isset($db_conn['host']) ? $db_conn['host'] : 'localhost';
-        $user = isset($db_conn['user']) ? $db_conn['user'] : 'root';
-        $pass = isset($db_conn['pass']) ? $db_conn['pass'] : '';
+    public function __construct($db_conn = array('host' => 'mysql', 'user' => 'cmnwgovl_nimal', 'pass' => 'raviravi', 'database' => 'cmnwgovl_cliet_meet',)) {
+        $host = isset($db_conn['host']) ? $db_conn['host'] : 'mysql';
+        $user = isset($db_conn['user']) ? $db_conn['user'] : 'cmnwgovl_nimal';
+        $pass = isset($db_conn['pass']) ? $db_conn['pass'] : 'raviravi';
         //die("123");
         //print_r($db_conn);
         //echo "  host " . $db_conn['database'];
