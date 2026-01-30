@@ -20,18 +20,28 @@ class SimpleDBClass {
 
     //--->Connect to database - Start
 
-    public function __construct($db_conn = array('host' => 'mysql', 'user' => 'cmnwgovl_nimal', 'pass' => 'raviravi', 'database' => 'cmnwgovl_cliet_meet',)) {
-        $host = isset($db_conn['host']) ? $db_conn['host'] : 'mysql';
-        $user = isset($db_conn['user']) ? $db_conn['user'] : 'cmnwgovl_nimal';
-        $pass = isset($db_conn['pass']) ? $db_conn['pass'] : 'raviravi';
-        //die("123");
-        //print_r($db_conn);
-        //echo "  host " . $db_conn['database'];
-        //var_dump($db_conn);
-        $database = isset($db_conn['database']) ? $db_conn['database'] : die('no database set');
-        // Create connection
-        $connection = mysqli_connect($host, $user, $pass, $database);
-        $mysqli_set_charset = mysqli_set_charset($connection, "utf8");
+
+// db_class.php හි 20 වන පේළිය අවට වෙනස් කරන්න
+public function __construct($db_conn = array()) {
+    // OpenShift මගින් ලබාදෙන variables කියවා ගැනීම
+    $host     = getenv('DATABASE_SERVICE_NAME') ?: 'mysql'; 
+    $user     = getenv('DATABASE_USER') ?: 'cmnwgovl_nimal'; 
+    $pass     = getenv('DATABASE_PASSWORD') ?: 'raviravi'; 
+    $database = getenv('DATABASE_NAME') ?: 'cmnwgovl_cliet_meet';
+
+    // Create connection
+    $connection = mysqli_connect($host, $user, $pass, $database);
+    
+    if (!$connection) {
+        die("Connection failed: " . mysqli_connect_error());
+    }
+    
+    $this->isConn = $connection;
+    mysqli_set_charset($connection, "utf8");
+}
+
+
+
         // Check connection
         if (!$connection) {
             //echo ("conasfasdfas");
