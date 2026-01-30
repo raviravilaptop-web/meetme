@@ -20,7 +20,7 @@ class SimpleDBClass {
 
     //--->Connect to database - Start
     public function __construct($db_conn = array()) {
-        // OpenShift Environment Variables කියවා ගැනීම (එවා නැතිනම් default අගයන් භාවිතා වේ)
+        // OpenShift Environment Variables කියවා ගැනීම
         $host     = getenv('DATABASE_SERVICE_NAME') ?: 'mysql-meetmedb'; 
         $user     = getenv('DATABASE_USER') ?: 'cmnwgovl_nimal'; 
         $pass     = getenv('DATABASE_PASSWORD') ?: 'raviravi'; 
@@ -35,7 +35,12 @@ class SimpleDBClass {
             die("Connection failed: " . mysqli_connect_error());
         } else {
             $this->isConn = $connection;
-            mysqli_set_charset($connection, "utf8");
+            
+            // 1. සිංහල අකුරු (Unicode) නිවැරදිව පෙන්වීමට charset එක සකස් කිරීම
+            mysqli_set_charset($connection, "utf8mb4");
+            
+            // 2. 'ONLY_FULL_GROUP_BY' Error එක විසඳීමට Strict Mode එක තාවකාලිකව ඉවත් කිරීම
+            mysqli_query($connection, "SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
         }
     }
     //--->Connect to database - End
@@ -46,7 +51,11 @@ class SimpleDBClass {
             die("Connection failed in Select function - " . mysqli_connect_error());
         }
         if ($con) {
+            // Prepared statements භාවිතයේදී error handle කිරීම වැඩි දියුණු කර ඇත
             $stmt = $con->prepare($query);
+            if (!$stmt) {
+                die("Query Prepare failed: " . $con->error);
+            }
             $stmt->execute();
             $result = $stmt->get_result();
             return $result;
@@ -86,13 +95,15 @@ class SimpleDBClass {
 
     //--->Insert - Start  
     function Insert($TableName, $row_arrays = array()) {
+        $columns = array();
+        $values = array();
         foreach (array_keys($row_arrays) as $key) {
-            $columns[] = "$key";
-            $values[] = "'" . $row_arrays[$key] . "'";
+            $columns[] = "`$key`"; // Column names වලට backticks එකතු කරන ලදී
+            $values[] = "'" . mysqli_real_escape_string($this->isConn, $row_arrays[$key]) . "'";
         }
-        $columns = implode(",", $columns);
-        $values = implode(",", $values);
-        $sql = "INSERT INTO $TableName ($columns) VALUES ($values)";
+        $columns_str = implode(",", $columns);
+        $values_str = implode(",", $values);
+        $sql = "INSERT INTO $TableName ($columns_str) VALUES ($values_str)";
         $con = $this->isConn;
         if (!$con) {
             die("Connection failed in query function - " . mysqli_connect_error());
@@ -114,16 +125,16 @@ class SimpleDBClass {
 
     //--->Update - Start
     function Update($strTableName, $array_fields, $array_where) {
+        $field_update = array();
+        $field_where = array();
         foreach ($array_fields as $key => $value) {
-            if ($key) {
-                $field_update[] = " $key='$value'";
-            }
+            $val = mysqli_real_escape_string($this->isConn, $value);
+            $field_update[] = " `$key`='$val'";
         }
         $fields_update = implode(',', $field_update);
         foreach ($array_where as $key => $value) {
-            if ($key) {
-                $field_where[] = " $key='$value'";
-            }
+            $val = mysqli_real_escape_string($this->isConn, $value);
+            $field_where[] = " `$key`='$val'";
         }
         $fields_where = implode(' and ', $field_where);
         $SQLStatement = "UPDATE $strTableName SET $fields_update WHERE $fields_where ";
@@ -149,10 +160,10 @@ class SimpleDBClass {
 
     //--->Delete - Start
     function Delete($strTableName, $array_where) {
+        $field_where = array();
         foreach ($array_where as $key => $value) {
-            if ($key) {
-                $field_where[] = " $key='$value' ";
-            }
+            $val = mysqli_real_escape_string($this->isConn, $value);
+            $field_where[] = " `$key`='$val' ";
         }
         $fields_where = implode(' and ', $field_where);
         $con = $this->isConn;
